@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  transcoder:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: transcoder
+    env_file: "./env"
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./volumes/transcoer/video/:/mnt/video # map as desired
+    restart: unless-stopped
+
+  redis-server:
+    image: redis:7.4.0-alpine
+    container_name: redis-server
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=your_secure_password
+    command: ["redis-server", "--requirepass", "your_secure_password", "--appendonly", "yes"]
+    volumes:
+      - ./volumes/redis_data:/data 
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "your_secure_password", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped

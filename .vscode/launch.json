@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Program",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "nodemon",
+      "runtimeArgs": [
+        "--inspect",
+        "-r",
+        "ts-node/register",
+        "-r",
+        "tsconfig-paths/register",
+        "src/main.ts"
+      ],
+      "port": 9229,
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.env",
+      "restart": true
+    }
+  ]
+}

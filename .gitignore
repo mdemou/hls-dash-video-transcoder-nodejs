@@ -1,0 +1,10 @@
+dist
+yarn-error.log
+node_modules
+npm-debug.log
+.env
+.vscode/settings.json
+.deployment/volumes
+.creds/*.json
+coverage
+volumes/*

@@ -1,0 +1,26 @@
+# Dependency directory
+.idea/
+.vscode/
+.DS_Store
+
+node_modules/
+coverage/
+docs/
+.nyc_output/
+
+npm-debug.log
+.env
+
+docker-compose
+
+.git
+.gitignore
+
+dist
+
+.deployment/volumes
+.postman/
+.docs/
+coverage
+
+.creds/*.json
