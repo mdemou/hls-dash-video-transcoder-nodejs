@@ -2,6 +2,11 @@
   "name": "transcoder-backend",
   "version": "1.0.0",
   "main": "main.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mdemou/hls-dash-video-transcoder-nodejs"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev:tsc": "tsc --watch -p .",
