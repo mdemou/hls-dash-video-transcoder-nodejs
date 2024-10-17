@@ -11,7 +11,7 @@ type ServiceResponse<T> = {
 const requestService = {
   get: async <T>(url: string, options: Object = {}): Promise<ServiceResponse<T>> => {
     try {
-      logger.info(__filename, 'get', `Getting ${url}`);
+      logger.debug(__filename, 'get', `Getting ${url}`);
       const response: AxiosResponse<T> = await axios.get(url, options);
       return {
         success: true,
@@ -32,7 +32,7 @@ const requestService = {
 
   post: async <T>(url: string, payload: Object, options: Object): Promise<ServiceResponse<T>> => {
     try {
-      logger.info(__filename, 'post', `Posting ${url}`);
+      logger.debug(__filename, 'post', `Posting ${url}`);
       const response = await axios.post(url, payload, options);
       return {
         success: true,

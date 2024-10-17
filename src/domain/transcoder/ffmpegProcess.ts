@@ -22,13 +22,13 @@ function runFfmpegProcess(
   return new Promise((resolve, reject) => {
     transcoder
       .on('start', async (commandLine: string) => {
-        logger.info(__filename, 'go', `Transcoding started with ${commandLine}`);
+        logger.debug(__filename, 'go', `Transcoding started with ${commandLine}`);
         if (config.domain.transcoder.webhooks.onStart) {
           await notifyTranscodingStatus(config.domain.transcoder.webhooks.status.started, requestContent);
         }
       })
       .on('end', async () => {
-        logger.info(__filename, 'go', 'Transcoding finished');
+        logger.debug(__filename, 'go', 'Transcoding finished');
         if (config.domain.transcoder.webhooks.onFinished) {
           await notifyTranscodingStatus(config.domain.transcoder.webhooks.status.finished, requestContent);
         }

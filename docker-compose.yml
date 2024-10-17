@@ -10,7 +10,7 @@ services:
     ports:
       - "3002:3002"
     volumes:
-      - ./volumes/transcoer/video/:/mnt/video # map as desired
+      - ./volumes/transcoder/video/:/mnt/video # map as desired
     restart: unless-stopped
 
   redis-server:

@@ -27,6 +27,8 @@ export interface IConfig {
     db: string;
     mainQueue: string;
     deadLetterQueue: string;
+    publisherClientName: string;
+    listenerClientName: string;
   },
   swagger: {
     options: {

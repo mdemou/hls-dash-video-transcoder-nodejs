@@ -125,6 +125,15 @@ There is a dead letter queue named _transcoder_jobs_dead_letter_queue_ or if ove
 }
 ```
 
+#### Useful commands for Redis-cli:
+```sh
+# list queue jobs
+LRANGE transcoder_jobs_queue 0 -1
+
+# push job into queue
+LPUSH transcoder_jobs_queue "{\r\n    \"inputFilePath\": \"./volumes/whatever.mp4\",\r\n    \"hlsOutputPath\": \"./volumes/hls/whatever\"\r\n}"
+```
+
 ## FAQ
 __Q: Is it ready for scaling?__
 
@@ -144,7 +153,7 @@ __A:__ Yes. Take a look at the _NOTIFICATION_WEBHOOK_ON_ [environment variables]
 
 
 ## LICENSE
-Check [License](./LICENSE.md) file
+Check [License](./LICENSE) file
 
 
 ## Support and PR

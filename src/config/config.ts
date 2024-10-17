@@ -31,6 +31,8 @@ const config: IConfig = {
     db: process.env.REDIS_DB,
     mainQueue: process.env.REDIS_TRANSCODER_MAIN_QUEUE || 'transcoder_jobs_queue',
     deadLetterQueue: process.env.REDIS_TRANSCODER_DEAD_LETTER_QUEUE || 'transcoder_jobs_dead_letter_queue',
+    publisherClientName: 'publisher'.toUpperCase(),
+    listenerClientName: 'listener'.toUpperCase(),
   },
   swagger: {
     options: {

@@ -9,7 +9,7 @@ export const defaultRoutes: ServerRoute[] = [
       auth: false,
       description: '404 Not found',
       handler: (request: Request, h: ResponseToolkit) => {
-        logger.info(__dirname, 'defaultRoutes', '404 not found!!');
+        logger.debug(__dirname, 'defaultRoutes', '404 not found!!');
         return h.response({
           statusCode: 404,
           code: 'NTFND404',
