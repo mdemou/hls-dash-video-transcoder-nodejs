@@ -25,20 +25,15 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Determine Docker tag
-      id: docker_tag
+    - name: Build and tag Docker image for main branch
+      if: github.ref == 'refs/heads/main'
       run: |
-        if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
-          echo "tag=latest" >> $GITHUB_ENV
-        elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
-          VERSION_TAG=${GITHUB_REF#refs/tags/}
-          echo "tag=$VERSION_TAG" >> $GITHUB_ENV
-        fi
+        docker build -t ghcr.io/${{ github.repository }}:latest .
+        docker push ghcr.io/${{ github.repository }}:latest
 
-    - name: Build and tag Docker image
+    - name: Build and tag Docker image for version tags
+      if: startsWith(github.ref, 'refs/tags/')
       run: |
-        docker build -t ghcr.io/${{ github.repository }}:${{ env.tag }} .
-
-    - name: Push Docker image
-      run: |
-        docker push ghcr.io/${{ github.repository }}:${{ env.tag }}
+        VERSION_TAG=${GITHUB_REF#refs/tags/}
+        docker build -t ghcr.io/${{ github.repository }}:${VERSION_TAG} .
+        docker push ghcr.io/${{ github.repository }}:${VERSION_TAG}
