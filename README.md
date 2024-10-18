@@ -1,5 +1,7 @@
 # Transcoder
 
+![Docker Build and Push](https://github.com/mdemou/hls-dash-video-transcoder-nodejs/actions/workflows/docker-build.yml/badge.svg)
+
 Transcode videos to HLS and / or DASH adaptative bitrate streaming protocols. Also includes optional notifications for status updates
 
 Some post-events could be configured. Take a look at [environment variables](#environment-variables)
@@ -59,28 +61,6 @@ Due to a correct local functioning, add a .env file to the root with the followi
 
 > A `.env.sample` is in the repo as example
 
-```sh
-# MANDATORY
-APP_NAME=TRANSCODER
-HOST=0.0.0.0
-LOG_LEVEL=debug
-PORT=3002
-REDIS_ENABLED=true
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=your_secure_password
-REDIS_DB=0
-
-# OPTIONAL
-NOTIFICATION_STATUS_TRANSCODED_URL= # POST request is sent to this URL for transcoding status updates
-NOTIFICATION_AUTHORIZATION_HEADER= # Authorization header could be added to notification requests
-NOTIFICATION_WEBHOOK_ON_START= # default false
-NOTIFICATION_WEBHOOK_ON_FINISHED= # default false
-NOTIFICATION_WEBHOOK_ON_FAILED= # default false
-REDIS_TRANSCODER_MAIN_QUEUE= # default transcoder_jobs_queue
-REDIS_TRANSCODER_DEAD_LETTER_QUEUE= # default transcoder_jobs_dead_letter_queue
-```
-
 ## How to use
 
 ### HTTP
@@ -91,6 +71,7 @@ REDIS_TRANSCODER_DEAD_LETTER_QUEUE= # default transcoder_jobs_dead_letter_queue
 
 | PAYLOAD        | DEFAULT          | REQUIRED
 |----------------|------------------|---------------|
+| trackingId     |                  | false
 | inputFilePath  |./volumes/cbd.mp4 | true
 | hlsOutputPath  |./volumes/hls/cbd | false*
 | dashOutputPath |./volumes/dash/cbd| false*
@@ -101,10 +82,11 @@ REDIS_TRANSCODER_DEAD_LETTER_QUEUE= # default transcoder_jobs_dead_letter_queue
 
 Example: 
 ```sh
-# replace inputFilePath, hlsOutputPath and dashOutputPath variables
+# replace trackingId, inputFilePath, hlsOutputPath and dashOutputPath variables
 curl --location 'localhost:3002/transcoder' \
 --header 'Content-Type: application/json' \
 --data '{
+    "trackingId": "aaaaaaaa-cccc-dddd-aaaa-bbbbbbbbbbbb",
     "inputFilePath": "./volumes/cbd.mp4",
     "hlsOutputPath": "./volumes/hls/cbd"
     "dashOutputPath": "./volumes/dash/cbd"
@@ -150,6 +132,10 @@ __A:__ No. Currently, HTTP(S) notifications are the only way for updating status
 __Q: Can I decide which change events I want to send a HTTP(S) notification?__
 
 __A:__ Yes. Take a look at the _NOTIFICATION_WEBHOOK_ON_ [environment variables](#environment-variables).
+
+__Q: Can I track the request in some way?__
+
+__A:__ Yes. Adding a trackingId attribute to the payload request. It'll be returned on every notification hook event.
 
 
 ## LICENSE

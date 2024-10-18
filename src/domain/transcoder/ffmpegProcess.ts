@@ -18,19 +18,29 @@ async function ensureDirectoryExists(directoryPath: string): Promise<void> {
 function runFfmpegProcess(
   transcoder: ffmpeg,
   requestContent: ITranscoderCreate,
+  type: string,
 ): Promise<void> {
+  const trackingId = requestContent.trackingId;
   return new Promise((resolve, reject) => {
     transcoder
       .on('start', async (commandLine: string) => {
         logger.debug(__filename, 'go', `Transcoding started with ${commandLine}`);
         if (config.domain.transcoder.webhooks.onStart) {
-          await notifyTranscodingStatus(config.domain.transcoder.webhooks.status.started, requestContent);
+          await notifyTranscodingStatus(
+            config.domain.transcoder.webhooks.status.started,
+            trackingId,
+            `[${type.toUpperCase()}]`,
+          );
         }
       })
       .on('end', async () => {
         logger.debug(__filename, 'go', 'Transcoding finished');
         if (config.domain.transcoder.webhooks.onFinished) {
-          await notifyTranscodingStatus(config.domain.transcoder.webhooks.status.finished, requestContent);
+          await notifyTranscodingStatus(
+            config.domain.transcoder.webhooks.status.finished,
+            trackingId,
+            `[${type.toUpperCase()}]`,
+          );
         }
         resolve();
       })
@@ -42,7 +52,10 @@ function runFfmpegProcess(
       .on('error', async (error: any) => {
         logger.error(__filename, 'go', `Transcoding error: ${error}`);
         if (config.domain.transcoder.webhooks.onFailed) {
-          await notifyTranscodingStatus(config.domain.transcoder.webhooks.status.failed, requestContent, error.message);
+          await notifyTranscodingStatus(
+            config.domain.transcoder.webhooks.status.failed,
+            trackingId,
+            `[${type.toUpperCase()}] - ${error.message}`);
         }
         reject(error);
       })
@@ -83,6 +96,6 @@ export async function addTranscoderByType(
       .outputOptions(transcoderConfig.outputOptions)
       .output(transcoderConfig.getOutputPath(outputPath));
 
-    return runFfmpegProcess(transcoder, requestContent);
+    return runFfmpegProcess(transcoder, requestContent, type);
   }
 }

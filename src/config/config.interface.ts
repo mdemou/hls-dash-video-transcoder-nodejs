@@ -2,10 +2,10 @@ export interface IConfig {
   appName: string;
   domain: {
     transcoder: {
-      statusUrl: string;
-      authorizationHeader: string;
       webhooks: {
+        authorizationHeader: string;
         status: {
+          url: string;
           started: string;
           finished: string;
           failed: string;

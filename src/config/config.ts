@@ -6,10 +6,10 @@ const config: IConfig = {
   appName: process.env.APP_NAME || 'ts-backend',
   domain: {
     transcoder: {
-      statusUrl: process.env.NOTIFICATION_STATUS_TRANSCODED_URL,
-      authorizationHeader: process.env.NOTIFICATION_AUTHORIZATION_HEADER,
       webhooks: {
+        authorizationHeader: process.env.NOTIFICATION_AUTHORIZATION_HEADER,
         status: {
+          url: process.env.NOTIFICATION_TRANSCODED_STATUS_HOOK_URL,
           started: 'started'.toUpperCase(),
           finished: 'finished'.toUpperCase(),
           failed: 'failed'.toUpperCase(),

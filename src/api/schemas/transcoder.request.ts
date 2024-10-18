@@ -6,6 +6,10 @@ const requestDataSchema = Joi.object({
     .example('./volumes/myvideo.mp4')
     .error(new Error('inputFilePath is required and should be a string'))
     .required(),
+  trackingId: Joi.string()
+    .trim()
+    .example('whatever')
+    .error(new Error('trackingId must be a string')),
   hlsOutputPath: Joi.string()
     .trim()
     .example('./volumes/hls/myvideo')

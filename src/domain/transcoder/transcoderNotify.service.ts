@@ -1,14 +1,13 @@
 import config from './../../config/config';
 import requestService from './../../services/axios.service';
 import logger from './../../services/logger.service';
-import { ITranscoderCreate } from './transcoder.interface';
 
 export const notifyTranscodingStatus = async (
   status: string,
-  requestPayload: ITranscoderCreate,
-  transcoderError?: string,
+  trackingId?: string,
+  message?: string,
 ): Promise<void> => {
-  const url = config.domain.transcoder.statusUrl;
+  const url = config.domain.transcoder.webhooks.status.url;
 
   if (!url) {
     logger.info(__filename, 'notifyTranscodingStatus', 'No notification URL configured. Skipping.');
@@ -19,15 +18,14 @@ export const notifyTranscodingStatus = async (
     await requestService.post(
       url,
       {
-        status,
-        hlsOutputDir: requestPayload.hlsOutputPath,
-        dashOutputDir: requestPayload.dashOutputPath,
-        inputFile: requestPayload.inputFilePath,
-        error: transcoderError,
+        trackingId: trackingId,
+        status: status,
+        message: message,
       },
       {
-        headers: {
-          'Authorization': config.domain.transcoder.authorizationHeader,
+        headers: { 
+          'Authorization': config.domain.transcoder.webhooks.authorizationHeader,
+          'Content-Type': 'application/json',
         },
       },
     );
