@@ -3,7 +3,11 @@ ARG mode
 RUN if [ "$mode" = "dev" ] ; then apk --no-cache add curl ; fi
 # RUN apk --no-cache add curl
 
-RUN apk add --no-cache fuse go git build-base \
+RUN apk add --no-cache fuse bash curl git build-base \
+  && curl -LO https://go.dev/dl/go1.23.2.linux-amd64.tar.gz \
+  && tar -C /usr/local -xzf go1.23.2.linux-amd64.tar.gz \
+  && export PATH=$PATH:/usr/local/go/bin \
+  && go version \
   && git clone https://github.com/GoogleCloudPlatform/gcsfuse /tmp/gcsfuse \
   && cd /tmp/gcsfuse \
   && go mod tidy \
