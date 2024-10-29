@@ -97,7 +97,7 @@ const redisService = {
       const notReadyClients = clients.filter(client => client?.redisClient?.status !== 'ready');
   
       if (notReadyClients.length === 0) {
-        logger.info(__filename, 'isReady', 'All Redis clients are ready');
+        // logger.info(__filename, 'isReady', 'All Redis clients are ready');
         return;
       }
   
