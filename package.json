@@ -37,7 +37,7 @@
     "@types/hapi__vision": "^5.5.8",
     "@types/jest": "^29.5.13",
     "@types/node": "^20.16.10",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.57.1",
     "eslint-config-airbnb-typescript": "^17.1.0",
