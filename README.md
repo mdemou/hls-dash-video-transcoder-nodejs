@@ -69,29 +69,48 @@ Due to a correct local functioning, add a .env file to the root with the followi
 | __POST__      	| _/transcoder_ 
 
 
-| PAYLOAD        | DEFAULT          | REQUIRED
-|----------------|------------------|---------------|
-| trackingId     |                  | false
-| inputFilePath  |./volumes/cbd.mp4 | true
-| hlsOutputPath  |./volumes/hls/cbd | false*
-| dashOutputPath |./volumes/dash/cbd| false*
+| PAYLOAD           | DEFAULT          | REQUIRED | DESCRIPTION
+|-------------------|------------------|----------|-------------
+| trackingId        |                  | false    | Unique identifier for tracking the transcoding job
+| inputFilePath     |./volumes/cbd.mp4 | true     | Path to the source video file
+| hlsOutputPath     |./volumes/hls/cbd | false*   | Output directory for HLS files
+| dashOutputPath    |./volumes/dash/cbd| false*   | Output directory for DASH files
+| encryptionKeyPath |                  | false    | Path to encryption key file for HLS encryption
+| encryptionKeyUrl  |                  | false    | URL where the encryption key will be accessible
 
 * _hlsOutputPath_ and _dashOutputPath_ are optional, but at least one is mandatory
+* _encryptionKeyPath_ and _encryptionKeyUrl_ are both required together for HLS encryption (optional feature)
 
 > For more info, once the app is running, check documentation: http://localhost:3002/documentation
 
-Example: 
+#### Basic Example: 
 ```sh
-# replace trackingId, inputFilePath, hlsOutputPath and dashOutputPath variables
+# Basic transcoding without encryption
 curl --location 'localhost:3002/transcoder' \
 --header 'Content-Type: application/json' \
 --data '{
     "trackingId": "aaaaaaaa-cccc-dddd-aaaa-bbbbbbbbbbbb",
     "inputFilePath": "./volumes/cbd.mp4",
-    "hlsOutputPath": "./volumes/hls/cbd"
+    "hlsOutputPath": "./volumes/hls/cbd",
     "dashOutputPath": "./volumes/dash/cbd"
 }'
 ```
+
+#### HLS Encryption Example:
+```sh
+# HLS transcoding with AES-128 encryption
+curl --location 'localhost:3002/transcoder' \
+--header 'Content-Type: application/json' \
+--data '{
+    "trackingId": "aaaaaaaa-cccc-dddd-aaaa-bbbbbbbbbbbb",
+    "inputFilePath": "./volumes/cbd.mp4",
+    "hlsOutputPath": "./volumes/hls/cbd",
+    "encryptionKeyPath": "./volumes/keys/encryption.key",
+    "encryptionKeyUrl": "https://your-domain.com/keys/encryption.key"
+}'
+```
+
+> **Note on HLS Encryption**: When using HLS encryption, ensure your encryption key file exists at the specified path and will be accessible via the provided URL. The transcoder uses AES-128 encryption and automatically generates a key info file for ffmpeg.
 
 ### REDIS
 A Redis consumer is listening to published jobs in _transcoder_jobs_queue_ queue, the defined in the environment variable __REDIS_TRANSCODER_MAIN_QUEUE__.
@@ -136,6 +155,10 @@ __A:__ Yes. Take a look at the _NOTIFICATION_WEBHOOK_ON_ [environment variables]
 __Q: Can I track the request in some way?__
 
 __A:__ Yes. Adding a trackingId attribute to the payload request. It'll be returned on every notification hook event.
+
+__Q: Does the transcoder support HLS encryption?__
+
+__A:__ Yes. The transcoder supports AES-128 HLS encryption. To enable encryption, include both `encryptionKeyPath` (path to your encryption key file) and `encryptionKeyUrl` (URL where the key will be accessible) in your request payload. The transcoder automatically creates the required key info file and configures ffmpeg for encrypted HLS output.
 
 
 ## LICENSE

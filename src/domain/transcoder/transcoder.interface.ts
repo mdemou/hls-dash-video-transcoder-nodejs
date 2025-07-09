@@ -3,6 +3,8 @@ export interface ITranscoderCreate {
   inputFilePath: string;
   hlsOutputPath: string;
   dashOutputPath: string;
+  encryptionKeyPath?: string;
+  encryptionKeyUrl?: string;
 }
 
 export interface ITranscoderOnProgress {

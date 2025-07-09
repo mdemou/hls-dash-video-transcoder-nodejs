@@ -18,6 +18,25 @@ const requestDataSchema = Joi.object({
     .trim()
     .example('./volumes/dash/myvideo')
     .error(new Error('dashPutputPath is required and should be a string')),
-}).or('hlsOutputPath', 'dashOutputPath');
+  encryptionKeyPath: Joi.string()
+    .trim()
+    .example('./volumes/vods/uuid/hls/encryption.key')
+    .error(new Error('encryptionKeyPath must be a string'))
+    .when('dashOutputPath', {
+      is: Joi.exist(),
+      then: Joi.forbidden().error(new Error('encryptionKeyPath is not allowed with DASH output')),
+    }),
+  encryptionKeyUrl: Joi.string()
+    .trim()
+    .example('/keys/vods/uuid/encryption.key')
+    .error(new Error('encryptionKeyUrl must be a string'))
+    .when('dashOutputPath', {
+      is: Joi.exist(),
+      then: Joi.forbidden().error(new Error('encryptionKeyUrl is not allowed with DASH output')),
+    }),
+})
+  .or('hlsOutputPath', 'dashOutputPath')
+  .with('encryptionKeyPath', 'encryptionKeyUrl')
+  .with('encryptionKeyUrl', 'encryptionKeyPath');
 
 export default requestDataSchema;

@@ -1,5 +1,6 @@
 import ffmpeg from 'fluent-ffmpeg';
 import fs from 'fs';
+import path from 'path';
 import logger from '../../services/logger.service';
 import config from './../../config/config';
 import { ITranscoderCreate, ITranscoderOnProgress } from './transcoder.interface';
@@ -12,6 +13,37 @@ async function ensureDirectoryExists(directoryPath: string): Promise<void> {
   } catch (error) {
     logger.error(__filename, 'ensureDirectoryExists', `Error creating directory: ${directoryPath}`, error);
     throw new Error(`Failed to create directory: ${directoryPath}`);
+  }
+}
+
+async function createHlsKeyInfoFile(
+  outputPath: string,
+  encryptionKeyPath: string,
+  encryptionKeyUrl: string,
+): Promise<string> {
+  try {
+    logger.debug(__filename, 'createHlsKeyInfoFile', 'Creating HLS key info file for encryption');
+
+    // Read the encryption key to get its hex representation
+    const encryptionKeyBuffer = await fs.promises.readFile(encryptionKeyPath);
+    const encryptionKeyHex = encryptionKeyBuffer.toString('hex');
+
+    // Create key info file content
+    const keyInfoContent = [
+      encryptionKeyUrl,
+      encryptionKeyPath,
+      encryptionKeyHex,
+    ].join('\n');
+
+    // Write key info file
+    const keyInfoFilePath = path.join(outputPath, 'key_info.txt');
+    await fs.promises.writeFile(keyInfoFilePath, keyInfoContent);
+
+    logger.debug(__filename, 'createHlsKeyInfoFile', `Key info file created at: ${keyInfoFilePath}`);
+    return keyInfoFilePath;
+  } catch (error) {
+    logger.error(__filename, 'createHlsKeyInfoFile', 'Error creating HLS key info file', error);
+    throw new Error(`Failed to create HLS key info file: ${error.message}`);
   }
 }
 
@@ -45,7 +77,7 @@ function runFfmpegProcess(
         resolve();
       })
       .on('progress', async (progress: ITranscoderOnProgress) => {
-        logger.debug(__filename, 'go', 
+        logger.debug(__filename, 'go',
           `Processing: frames:${progress.frames} fps:${progress.currentFps} time:${progress.timemark}`,
         );
       })
@@ -65,17 +97,28 @@ function runFfmpegProcess(
 
 const transcoderOptionsMap = {
   hls: {
-    outputOptions: [
-      '-codec copy',
-      '-start_number 0',
-      '-hls_time 10',
-      '-hls_list_size 0',
-      '-f hls',
-    ],
+    getOutputOptions: (keyInfoFilePath?: string) => {
+      const baseOptions = [
+        '-codec copy',
+        '-start_number 0',
+        '-hls_time 10',
+        '-hls_list_size 0',
+        '-f hls',
+      ];
+
+      if (keyInfoFilePath) {
+        baseOptions.push(
+          '-hls_key_info_file', keyInfoFilePath,
+          '-hls_flags', 'delete_segments+discont_start',
+        );
+      }
+
+      return baseOptions;
+    },
     getOutputPath: (outputPath: string) => `${outputPath}/index.m3u8`,
   },
   dash: {
-    outputOptions: [
+    getOutputOptions: () => [
       '-f dash',
       '-seg_duration 10',
     ],
@@ -92,8 +135,34 @@ export async function addTranscoderByType(
   const transcoderConfig = transcoderOptionsMap[type];
   if (outputPath && transcoderConfig) {
     await ensureDirectoryExists(outputPath);
+
+    let outputOptions: string[];
+
+    if (type === 'hls' && requestContent.encryptionKeyPath && requestContent.encryptionKeyUrl) {
+      const keyInfoFilePath = await createHlsKeyInfoFile(
+        outputPath,
+        requestContent.encryptionKeyPath,
+        requestContent.encryptionKeyUrl,
+      );
+      outputOptions = transcoderConfig.getOutputOptions(keyInfoFilePath);
+      logger.info(
+        __filename,
+        'addTranscoderByType',
+        `HLS encryption enabled for ${requestContent.trackingId}`,
+      );
+    } else {
+      outputOptions = transcoderConfig.getOutputOptions();
+      if (type === 'hls') {
+        logger.info(
+          __filename,
+          'addTranscoderByType',
+          `HLS transcoding without encryption for ${requestContent.trackingId}`,
+        );
+      }
+    }
+
     const transcoder = ffmpeg(inputFile)
-      .outputOptions(transcoderConfig.outputOptions)
+      .outputOptions(outputOptions)
       .output(transcoderConfig.getOutputPath(outputPath));
 
     return runFfmpegProcess(transcoder, requestContent, type);
