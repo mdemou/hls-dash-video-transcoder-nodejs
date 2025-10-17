@@ -5,6 +5,7 @@ export interface ITranscoderCreate {
   dashOutputPath: string;
   encryptionKeyPath?: string;
   encryptionKeyUrl?: string;
+  segmentDuration: number;
 }
 
 export interface ITranscoderOnProgress {
@@ -13,4 +14,15 @@ export interface ITranscoderOnProgress {
   frames: number;
   targetSize: number;
   timemark: string;
+}
+
+export interface ITranscoderOptionsMap {
+  hls: {
+    getOutputOptions: (keyInfoFilePath?: string, segmentDuration?: number) => string[];
+    getOutputPath: (outputPath: string) => string;
+  };
+  dash: {
+    getOutputOptions: (segmentDuration?: number) => string[];
+    getOutputPath: (outputPath: string) => string;
+  };
 }

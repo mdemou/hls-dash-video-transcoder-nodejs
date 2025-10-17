@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import logger from '../../services/logger.service';
 import config from './../../config/config';
-import { ITranscoderCreate, ITranscoderOnProgress } from './transcoder.interface';
+import { ITranscoderCreate, ITranscoderOnProgress, ITranscoderOptionsMap } from './transcoder.interface';
 import { notifyTranscodingStatus } from './transcoderNotify.service';
 
 async function ensureDirectoryExists(directoryPath: string): Promise<void> {
@@ -95,13 +95,13 @@ function runFfmpegProcess(
   });
 }
 
-const transcoderOptionsMap = {
+const transcoderOptionsMap: ITranscoderOptionsMap = {
   hls: {
-    getOutputOptions: (keyInfoFilePath?: string) => {
+    getOutputOptions: (keyInfoFilePath?: string, segmentDuration: number = 10) => {
       const baseOptions = [
         '-codec copy',
         '-start_number 0',
-        '-hls_time 10',
+        `-hls_time ${segmentDuration}`,
         '-hls_list_size 0',
         '-f hls',
       ];
@@ -118,9 +118,9 @@ const transcoderOptionsMap = {
     getOutputPath: (outputPath: string) => `${outputPath}/index.m3u8`,
   },
   dash: {
-    getOutputOptions: () => [
+    getOutputOptions: (segmentDuration: number = 10) => [
       '-f dash',
-      '-seg_duration 10',
+      `-seg_duration ${segmentDuration}`,
     ],
     getOutputPath: (outputPath: string) => `${outputPath}/manifest.mpd`,
   },
@@ -132,39 +132,55 @@ export async function addTranscoderByType(
   outputPath: string,
   requestContent: ITranscoderCreate,
 ): Promise<void> {
-  const transcoderConfig = transcoderOptionsMap[type];
-  if (outputPath && transcoderConfig) {
-    await ensureDirectoryExists(outputPath);
+  if (!outputPath) {
+    return;
+  }
 
-    let outputOptions: string[];
+  await ensureDirectoryExists(outputPath);
 
-    if (type === 'hls' && requestContent.encryptionKeyPath && requestContent.encryptionKeyUrl) {
+  const segmentDuration = requestContent.segmentDuration || 10;
+  let outputOptions: string[];
+  let outputFilePath: string;
+
+  if (type === 'hls') {
+    const hlsConfig = transcoderOptionsMap.hls;
+    if (requestContent.encryptionKeyPath && requestContent.encryptionKeyUrl) {
       const keyInfoFilePath = await createHlsKeyInfoFile(
         outputPath,
         requestContent.encryptionKeyPath,
         requestContent.encryptionKeyUrl,
       );
-      outputOptions = transcoderConfig.getOutputOptions(keyInfoFilePath);
+      outputOptions = hlsConfig.getOutputOptions(keyInfoFilePath, segmentDuration);
       logger.info(
         __filename,
         'addTranscoderByType',
-        `HLS encryption enabled for ${requestContent.trackingId}`,
+        `HLS encryption enabled for ${requestContent.trackingId} with segment duration: ${segmentDuration}s`,
       );
     } else {
-      outputOptions = transcoderConfig.getOutputOptions();
-      if (type === 'hls') {
-        logger.info(
-          __filename,
-          'addTranscoderByType',
-          `HLS transcoding without encryption for ${requestContent.trackingId}`,
-        );
-      }
+      outputOptions = hlsConfig.getOutputOptions(undefined, segmentDuration);
+      logger.info(
+        __filename,
+        'addTranscoderByType',
+        `HLS transcoding without encryption for ${requestContent.trackingId}` +
+        ` with segment duration: ${segmentDuration}s`,
+      );
     }
-
-    const transcoder = ffmpeg(inputFile)
-      .outputOptions(outputOptions)
-      .output(transcoderConfig.getOutputPath(outputPath));
-
-    return runFfmpegProcess(transcoder, requestContent, type);
+    outputFilePath = hlsConfig.getOutputPath(outputPath);
+  } else {
+    const dashConfig = transcoderOptionsMap.dash;
+    outputOptions = dashConfig.getOutputOptions(segmentDuration);
+    outputFilePath = dashConfig.getOutputPath(outputPath);
+    logger.info(
+      __filename,
+      'addTranscoderByType',
+      `DASH transcoding for ${requestContent.trackingId}` +
+      ` with segment duration: ${segmentDuration}s`,
+    );
   }
+
+  const transcoder = ffmpeg(inputFile)
+    .outputOptions(outputOptions)
+    .output(outputFilePath);
+
+  return runFfmpegProcess(transcoder, requestContent, type);
 }

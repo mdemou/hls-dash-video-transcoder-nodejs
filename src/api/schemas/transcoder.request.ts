@@ -34,6 +34,12 @@ const requestDataSchema = Joi.object({
       is: Joi.exist(),
       then: Joi.forbidden().error(new Error('encryptionKeyUrl is not allowed with DASH output')),
     }),
+  segmentDuration: Joi.number()
+    .integer()
+    .default(6)
+    .min(1)
+    .example(10)
+    .error(new Error('segmentDuration must be a number and greater than 0')),
 })
   .or('hlsOutputPath', 'dashOutputPath')
   .with('encryptionKeyPath', 'encryptionKeyUrl')
