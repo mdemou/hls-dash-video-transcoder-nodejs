@@ -98,19 +98,40 @@ function runFfmpegProcess(
 const transcoderOptionsMap: ITranscoderOptionsMap = {
   hls: {
     getOutputOptions: (keyInfoFilePath?: string, segmentDuration: number = 10) => {
+      // Calculate GOP size (frames per keyframe) based on segment duration
+      // Assuming 30 fps, adjust if your videos have different frame rates
+      // This ensures keyframes align with segment boundaries
+      const fps = 30; // Default FPS, can be made configurable if needed
+      const gopSize = Math.round(fps * segmentDuration);
+
+      // Build hls_flags based on whether encryption is enabled
+      let hlsFlags = 'split_by_time';
+      if (keyInfoFilePath) {
+        hlsFlags = 'delete_segments+discont_start+split_by_time';
+      }
+
       const baseOptions = [
-        '-codec copy',
-        '-start_number 0',
-        `-hls_time ${segmentDuration}`,
-        '-hls_list_size 0',
-        '-f hls',
+        // Re-encode video to enable exact segment duration control
+        // Using libx264 with fast preset for reasonable speed/quality balance
+        '-c:v', 'libx264',
+        '-preset', 'veryfast',
+        '-crf', '23', // Good quality (lower = better quality, 18-28 is typical range)
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        // Force keyframes at exact segment intervals for precise segment duration
+        '-force_key_frames', `expr:gte(t,n_forced*${segmentDuration})`,
+        // Set GOP size to match segment duration
+        '-g', `${gopSize}`,
+        '-start_number', '0',
+        '-hls_time', `${segmentDuration}`,
+        '-hls_list_size', '0',
+        '-f', 'hls',
+        // Use split_by_time to ensure segments are split at exact time intervals
+        '-hls_flags', hlsFlags,
       ];
 
       if (keyInfoFilePath) {
-        baseOptions.push(
-          '-hls_key_info_file', keyInfoFilePath,
-          '-hls_flags', 'delete_segments+discont_start',
-        );
+        baseOptions.push('-hls_key_info_file', keyInfoFilePath);
       }
 
       return baseOptions;
