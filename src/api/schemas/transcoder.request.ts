@@ -36,7 +36,7 @@ const requestDataSchema = Joi.object({
     }),
   segmentDuration: Joi.number()
     .integer()
-    .default(6)
+    .default(4)
     .min(1)
     .example(10)
     .error(new Error('segmentDuration must be a number and greater than 0')),

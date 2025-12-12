@@ -97,37 +97,44 @@ function runFfmpegProcess(
 
 const transcoderOptionsMap: ITranscoderOptionsMap = {
   hls: {
-    getOutputOptions: (keyInfoFilePath?: string, segmentDuration: number = 10) => {
-      // Calculate GOP size (frames per keyframe) based on segment duration
-      // Assuming 30 fps, adjust if your videos have different frame rates
-      // This ensures keyframes align with segment boundaries
-      const fps = 30; // Default FPS, can be made configurable if needed
-      const gopSize = Math.round(fps * segmentDuration);
-
+    getOutputOptions: (keyInfoFilePath?: string, segmentDuration: number = 4) => {
       // Build hls_flags based on whether encryption is enabled
-      let hlsFlags = 'split_by_time';
+      let hlsFlags = 'independent_segments+split_by_time';
       if (keyInfoFilePath) {
-        hlsFlags = 'delete_segments+discont_start+split_by_time';
+        hlsFlags = 'independent_segments+delete_segments+discont_start+split_by_time';
       }
 
       const baseOptions = [
-        // Re-encode video to enable exact segment duration control
-        // Using libx264 with fast preset for reasonable speed/quality balance
+        // Video encoding - iOS-compatible settings matching livestream
         '-c:v', 'libx264',
         '-preset', 'veryfast',
-        '-crf', '23', // Good quality (lower = better quality, 18-28 is typical range)
+        '-profile:v', 'main',           // H.264 Main profile for iOS compatibility
+        '-level', '3.1',                 // Level 3.1 (supports up to 1280x720@30fps)
+        '-s:v', '1280x720',              // Force 720p resolution
+        '-b:v', '2500k',                 // Target bitrate (CBR)
+        '-maxrate', '2500k',             // Max bitrate (enforce CBR)
+        '-bufsize', '5000k',             // Buffer size (2x bitrate for CBR)
+        '-r', '30',                      // Force 30fps frame rate
+
+        // Audio encoding - iOS-compatible settings matching livestream
         '-c:a', 'aac',
         '-b:a', '192k',
-        // Force keyframes at exact segment intervals for precise segment duration
+        '-ar', '48000',                  // 48kHz sample rate
+        '-ac', '2',                      // Stereo
+
+        // GOP/Keyframe settings - aligned with 4s segments at 30fps
+        '-g', '120',                     // GOP size: 30fps * 4s = 120 frames
+        '-keyint_min', '120',            // Minimum keyframe interval
+        '-sc_threshold', '0',            // Disable scene change detection for consistent GOP
         '-force_key_frames', `expr:gte(t,n_forced*${segmentDuration})`,
-        // Set GOP size to match segment duration
-        '-g', `${gopSize}`,
+
+        // HLS settings
         '-start_number', '0',
         '-hls_time', `${segmentDuration}`,
         '-hls_list_size', '0',
         '-f', 'hls',
-        // Use split_by_time to ensure segments are split at exact time intervals
         '-hls_flags', hlsFlags,
+        '-hls_segment_type', 'mpegts',
       ];
 
       if (keyInfoFilePath) {

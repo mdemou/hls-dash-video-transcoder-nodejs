@@ -8,3 +8,4 @@ npm-debug.log
 .creds/*.json
 coverage
 volumes/*
+CLAUDE.md
