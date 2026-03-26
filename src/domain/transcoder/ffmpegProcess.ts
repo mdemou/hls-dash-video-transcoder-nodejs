@@ -124,9 +124,9 @@ const transcoderOptionsMap: ITranscoderOptionsMap = {
         // accumulates a phase drift between L and R that collapses after large amplitude
         // transitions (e.g. loud ads → quiet live), making the channels completely
         // uncorrelated and producing a severe phase/feedback artifact in the output.
-        // The pan filter explicitly duplicates the mono channel to both outputs, bypassing
-        // the broken internal conversion. aresample=async=1000 handles any A/V clock drift.
-        '-af', 'pan=stereo|FL=FC|FR=FC,aresample=async=1000',
+        // Fix: aresample first (handles timing on mono), then pan duplicates c0→both outputs.
+        // Using c0/c1 index syntax (not channel-name syntax) for maximum compatibility.
+        '-af', 'aresample=async=1000,pan=stereo|c0=c0|c1=c0',
 
         // GOP/Keyframe settings - aligned with 4s segments at 30fps
         '-g', '120',                     // GOP size: 30fps * 4s = 120 frames
