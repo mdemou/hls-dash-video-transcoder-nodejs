@@ -121,6 +121,10 @@ const transcoderOptionsMap: ITranscoderOptionsMap = {
         '-b:a', '192k',
         '-ar', '48000',                  // 48kHz sample rate
         '-ac', '2',                      // Stereo
+        // Resample audio to handle PTS discontinuities in the input MP4 (e.g. recordings
+        // that include live→ad→live transitions where each segment started from PTS=0).
+        // async=1000 allows up to 1000 samples of stretch/compress to stay in sync.
+        '-af', 'aresample=async=1000',
 
         // GOP/Keyframe settings - aligned with 4s segments at 30fps
         '-g', '120',                     // GOP size: 30fps * 4s = 120 frames
@@ -206,7 +210,17 @@ export async function addTranscoderByType(
     );
   }
 
+  // Input options: handle PTS discontinuities in recordings that contain live→ad→live
+  // transitions. Each FFmpeg process in the transcoder resets PTS to 0, so the MP4
+  // recorded with -c copy has backwards PTS jumps at transition points. A video player
+  // is lenient and plays frames in arrival order, so the MP4 sounds fine. But FFmpeg
+  // re-encoding uses PTS to order/time audio frames, and a backwards jump corrupts the
+  // AAC encoder state for the rest of the file (manifests as phase inversion / feedback).
+  // +igndts: ignore DTS, derive timing from PTS only
+  // +genpts: regenerate monotonic PTS wherever values are missing or go backwards
+  // +discardcorrupt: skip corrupt packets instead of halting
   const transcoder = ffmpeg(inputFile)
+    .inputOptions(['-fflags', '+igndts+genpts+discardcorrupt'])
     .outputOptions(outputOptions)
     .output(outputFilePath);
 
