@@ -104,35 +104,12 @@ const transcoderOptionsMap: ITranscoderOptionsMap = {
         hlsFlags = 'independent_segments+delete_segments+discont_start+split_by_time';
       }
 
+      // Stream copy: no re-encode. Caller must ship MP4 with HLS-safe GOP/keyframe spacing
+      // vs segmentDuration. MP4 (length-prefixed) H.264 → MPEG-TS needs annex B framing.
       const baseOptions = [
-        // Video encoding - iOS-compatible settings matching livestream
-        '-c:v', 'libx264',
-        '-preset', 'veryfast',
-        '-profile:v', 'main',           // H.264 Main profile for iOS compatibility
-        '-level', '3.1',                 // Level 3.1 (supports up to 1280x720@30fps)
-        '-s:v', '1280x720',              // Force 720p resolution
-        '-b:v', '2500k',                 // Target bitrate (CBR)
-        '-maxrate', '2500k',             // Max bitrate (enforce CBR)
-        '-bufsize', '5000k',             // Buffer size (2x bitrate for CBR)
-        '-r', '30',                      // Force 30fps frame rate
-
-        // Audio encoding - iOS-compatible settings matching livestream
-        '-c:a', 'aac',
-        '-b:a', '192k',
-        '-ar', '48000',                  // 48kHz sample rate
-        // DO NOT use -ac 2 alone for mono→stereo upmix. FFmpeg's implicit channel matrix
-        // accumulates a phase drift between L and R that collapses after large amplitude
-        // transitions (e.g. loud ads → quiet live), making the channels completely
-        // uncorrelated and producing a severe phase/feedback artifact in the output.
-        // Fix: aresample first (handles timing on mono), then pan duplicates c0→both outputs.
-        // Using c0/c1 index syntax (not channel-name syntax) for maximum compatibility.
-        '-af', 'aresample=async=1000,pan=stereo|c0=c0|c1=c0',
-
-        // GOP/Keyframe settings - aligned with 4s segments at 30fps
-        '-g', '120',                     // GOP size: 30fps * 4s = 120 frames
-        '-keyint_min', '120',            // Minimum keyframe interval
-        '-sc_threshold', '0',            // Disable scene change detection for consistent GOP
-        '-force_key_frames', `expr:gte(t,n_forced*${segmentDuration})`,
+        '-c:v', 'copy',
+        '-bsf:v', 'h264_mp4to_annexb',
+        '-c:a', 'copy',
 
         // HLS settings
         '-start_number', '0',
@@ -153,8 +130,11 @@ const transcoderOptionsMap: ITranscoderOptionsMap = {
   },
   dash: {
     getOutputOptions: (segmentDuration: number = 10) => [
-      '-f dash',
-      `-seg_duration ${segmentDuration}`,
+      // Same remux-only policy as HLS. fMP4 segments keep MP4-style H.264 (no annex-B BSF).
+      '-c:v', 'copy',
+      '-c:a', 'copy',
+      '-f', 'dash',
+      '-seg_duration', `${segmentDuration}`,
     ],
     getOutputPath: (outputPath: string) => `${outputPath}/manifest.mpd`,
   },
