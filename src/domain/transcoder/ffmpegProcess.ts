@@ -81,8 +81,11 @@ function runFfmpegProcess(
           `Processing: frames:${progress.frames} fps:${progress.currentFps} time:${progress.timemark}`,
         );
       })
-      .on('error', async (error: any) => {
-        logger.error(__filename, 'go', `Transcoding error: ${error}`);
+      .on('stderr', (line: string) => {
+        logger.debug(__filename, 'go', `[ffmpeg stderr] ${line}`);
+      })
+      .on('error', async (error: any, _stdout: any, stderr: string) => {
+        logger.error(__filename, 'go', `Transcoding error: ${error}`, { stderr });
         if (config.domain.transcoder.webhooks.onFailed) {
           await notifyTranscodingStatus(
             config.domain.transcoder.webhooks.status.failed,
@@ -105,10 +108,11 @@ const transcoderOptionsMap: ITranscoderOptionsMap = {
       }
 
       // Stream copy: no re-encode. Caller must ship MP4 with HLS-safe GOP/keyframe spacing
-      // vs segmentDuration. MP4 (length-prefixed) H.264 → MPEG-TS needs annex B framing.
+      // vs segmentDuration. Do NOT use h264_mp4to_annexb: the recorder writes MP4 with
+      // -c:v copy from RTMP, so H.264 is already Annex B; the BSF would crash FFmpeg.
+      // The HLS mpegts muxer handles any remaining framing internally.
       const baseOptions = [
         '-c:v', 'copy',
-        '-bsf:v', 'h264_mp4to_annexb',
         '-c:a', 'copy',
 
         // HLS settings
